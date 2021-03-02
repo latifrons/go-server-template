@@ -152,6 +152,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	v1 := router.Group("/api/v1")
 	{
 		v1.POST("file", rpc.UploadFile)
+		v1.DELETE("file/:key", rpc.DeleteFile)
 	}
 	return router
 }
@@ -240,6 +241,20 @@ func (rpc *RpcController) UploadFile(c *gin.Context) {
 	}
 	logrus.WithField("path", result.Location).Info("file uploaded")
 	Response(c, http.StatusOK, 1, "", result.Location)
+}
+
+func (rpc *RpcController) DeleteFile(c *gin.Context) {
+	key := c.Param("key")
+	if key == "" {
+		return
+	}
+
+	result, err := rpc.FileUploader.Remove(rpc.S3Bucket, key)
+	if rpc.ResponseError(c, err) {
+		return
+	}
+	logrus.Info("file deleted")
+	Response(c, http.StatusOK, 1, "", result.VersionId)
 }
 
 func tryParseIntDefault(v string, d int) int {
