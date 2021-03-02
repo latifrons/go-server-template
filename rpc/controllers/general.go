@@ -9,9 +9,12 @@ package controllers
 // @host localhost:8080
 // @BasePath /api/v1
 import (
+	"errors"
 	"fmt"
+	"github.com/afex/hystrix-go/hystrix"
 	"github.com/atom-eight/tmt-backend/dbgorm"
 	"github.com/atom-eight/tmt-backend/folder"
+	"github.com/atom-eight/tmt-backend/oss"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -24,10 +27,20 @@ import (
 var FullDateFormatPattern = "2 Jan 2006 15:04:05"
 var ShortDateFormatPattern = "2 Jan 2006"
 
+type Platform string
+
+const Platform_PC Platform = "PC"
+const Platform_M Platform = "MO"
+
+const DefaultCacheControl = "public; max-age=86400"
+
 type RpcController struct {
 	FolderConfig               folder.FolderConfig
 	ReturnDetailedErrorMessage bool
 	DbOperator                 *dbgorm.DbOperator
+	FileUploader               *oss.FileUploader
+	S3Bucket                   string
+	MaxUploadFileSize          int64
 }
 
 func (rpc *RpcController) NewRouter() *gin.Engine {
@@ -40,10 +53,13 @@ func (rpc *RpcController) NewRouter() *gin.Engine {
 		})
 		router.Use(logger)
 	}
-
 	router.Use(gin.RecoveryWithWriter(logrus.StandardLogger().Out))
 	router.Use(Cors())
-	return rpc.addRouter(router)
+
+	rpc.addRouter(router)
+	router.Use(BreakerWrapper)
+
+	return router
 }
 
 func Cors() gin.HandlerFunc {
@@ -70,6 +86,28 @@ func Cors() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func BreakerWrapper(c *gin.Context) {
+	name := c.Request.Method + "-" + c.Request.RequestURI
+	hystrix.Do(name, func() error {
+		c.Next()
+
+		statusCode := c.Writer.Status()
+
+		if statusCode >= http.StatusInternalServerError {
+			str := fmt.Sprintf("status code %d", statusCode)
+			return errors.New(str)
+		}
+
+		return nil
+	}, func(e error) error {
+		if e == hystrix.ErrCircuitOpen {
+			c.String(http.StatusAccepted, "Please try again later")
+		}
+
+		return e
+	})
 }
 
 var ginLogFormatter = func(param gin.LogFormatterParams) string {
@@ -105,8 +143,16 @@ var ginLogFormatter = func(param gin.LogFormatterParams) string {
 func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/api/health", rpc.Health)
-	router.GET("/api/debug/ua", rpc.DebugUA)
 
+	vDebug := router.Group("/api/debug")
+	{
+		vDebug.GET("ua", rpc.DebugUA)
+		vDebug.GET("panic", rpc.Panic)
+	}
+	v1 := router.Group("/api/v1")
+	{
+		v1.POST("file", rpc.UploadFile)
+	}
 	return router
 }
 
@@ -130,20 +176,6 @@ func ResponsePaging(c *gin.Context, status int, code int, msg string, pagingResu
 		Total:  pagingResult.Total,
 		Offset: pagingResult.Offset,
 		Data:   data,
-	})
-}
-
-func ResponseProjectPaging(c *gin.Context, status int, code int, msg string, pagingResult dbgorm.PagingResult, data interface{}, hasAny bool) {
-	c.JSON(status, ProjectPagingResponse{
-		PagingResponse: PagingResponse{
-			Code:   code,
-			Msg:    msg,
-			Limit:  pagingResult.Limit,
-			Total:  pagingResult.Total,
-			Offset: pagingResult.Offset,
-			Data:   data,
-		},
-		HasAny: hasAny,
 	})
 }
 
@@ -182,6 +214,32 @@ func (rpc *RpcController) ResponseEmptyQuery(c *gin.Context, value string) bool 
 
 func (rpc *RpcController) ToStringArray(query string) (arr []string, err error) {
 	return strings.Split(query, "$"), nil
+}
+
+func (rpc *RpcController) UploadFile(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if rpc.ResponseError(c, err) {
+		return
+	}
+
+	size := fileHeader.Size
+	if size > rpc.MaxUploadFileSize {
+		Response(c, http.StatusNotAcceptable, 1, "Exceed max file size", nil)
+		return
+	}
+
+	fileName := fileHeader.Filename
+	f, err := fileHeader.Open()
+	if rpc.ResponseError(c, err) {
+		return
+	}
+
+	result, err := rpc.FileUploader.Upload(f, rpc.S3Bucket, fileName, DefaultCacheControl)
+	if rpc.ResponseError(c, err) {
+		return
+	}
+	logrus.WithField("path", result.Location).Info("file uploaded")
+	Response(c, http.StatusOK, 1, "", result.Location)
 }
 
 func tryParseIntDefault(v string, d int) int {

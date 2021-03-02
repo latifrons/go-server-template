@@ -3,8 +3,10 @@ package core
 import (
 	"github.com/atom-eight/tmt-backend/dbgorm"
 	"github.com/atom-eight/tmt-backend/folder"
+	"github.com/atom-eight/tmt-backend/oss"
 	"github.com/atom-eight/tmt-backend/rpc"
 	"github.com/atom-eight/tmt-backend/rpc/controllers"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -23,11 +25,19 @@ func (n *Node) Setup() {
 	}
 	dbOperator.InitDefault()
 
+	fileUploader := &oss.FileUploader{
+		Endpoint: endpoints.UsEast2RegionID,
+	}
+	fileUploader.InitDefault()
+
 	rpcServer := &rpc.RpcServer{
 		C: &controllers.RpcController{
 			FolderConfig:               n.FolderConfig,
 			ReturnDetailedErrorMessage: viper.GetBool("debug.return_detailed_error"),
 			DbOperator:                 dbOperator,
+			FileUploader:               fileUploader,
+			S3Bucket:                   "file.894569.site",
+			MaxUploadFileSize:          100 * 1024,
 		},
 		Port: viper.GetString("rpc.port"),
 	}

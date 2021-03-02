@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"github.com/atom-eight/tmt-backend/dbgorm"
 	"github.com/avct/uasurfer"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 func (rpc *RpcController) DebugUA(c *gin.Context) {
@@ -23,27 +23,32 @@ func (rpc *RpcController) DebugUA(c *gin.Context) {
 	})
 }
 
-func (rpc *RpcController) GetPlatform(c *gin.Context) dbgorm.Platform {
+func (rpc *RpcController) GetPlatform(c *gin.Context) Platform {
 	ua := c.GetHeader("User-Agent")
 	if ua == "" {
-		return dbgorm.Platform_PC
+		return Platform_PC
 	}
 	uag := rpc.GetUA(ua)
 	switch uag.DeviceType {
 	case uasurfer.DevicePhone:
-		return dbgorm.Platform_M
+		return Platform_M
 	default:
 		switch uag.OS.Name {
 		case uasurfer.OSAndroid:
-			return dbgorm.Platform_M
+			return Platform_M
 		case uasurfer.OSiOS:
-			return dbgorm.Platform_M
+			return Platform_M
 		}
 	}
-	return dbgorm.Platform_PC
+	return Platform_PC
 }
 
 func (rpc *RpcController) GetUA(uas string) *uasurfer.UserAgent {
 	ua := uasurfer.Parse(uas)
 	return ua
+}
+
+func (rpc *RpcController) Panic(c *gin.Context) {
+	time.Sleep(10 * time.Second) // 模拟接口超时
+	c.JSON(200, gin.H{"message": "this is panic"})
 }

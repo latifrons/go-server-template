@@ -22,6 +22,7 @@ type RpcServer struct {
 
 func (srv *RpcServer) Start() {
 	srv.router = srv.C.NewRouter()
+
 	srv.server = &http.Server{
 		Addr:    ":" + srv.Port,
 		Handler: srv.router,
