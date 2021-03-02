@@ -1,6 +1,9 @@
 package dbgorm
 
-import _ "gorm.io/driver/mysql"
+import (
+	_ "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
 
 //type DbArticle struct {
 //	gorm.Model
@@ -15,3 +18,10 @@ import _ "gorm.io/driver/mysql"
 //	Platform              string `gorm:"size:8;index"`
 //  StartAt         time.Time
 //}
+
+type User struct {
+	gorm.Model
+	Email    string `gorm:"size:120;index"`
+	Phone    string `gorm:"size:120;index"`
+	Password string `gorm:"size:120;index"` // bcrypt
+}
