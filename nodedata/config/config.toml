@@ -1,0 +1,8 @@
+[redis]
+address = "gitez.cc:7983"
+db_id = 0
+code_expiration_seconds = 600 # 5 * 60
+
+
+[rpc]
+port = 8080

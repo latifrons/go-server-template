@@ -32,7 +32,7 @@ func (d *DbOperator) InitDefault() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	tables := []interface{}{
-		//&DbContact{},
+		&DbUser{},
 	}
 	for _, table := range tables {
 		err := db.AutoMigrate(table)

@@ -19,9 +19,10 @@ import (
 //  StartAt         time.Time
 //}
 
-type User struct {
+type DbUser struct {
 	gorm.Model
-	Email    string `gorm:"size:120;index"`
-	Phone    string `gorm:"size:120;index"`
-	Password string `gorm:"size:120;index"` // bcrypt
+	Email              string `gorm:"size:120;index"`
+	Phone              string `gorm:"size:120"`
+	Password           string `gorm:"size:60"` // bcrypt always have 60 chars length
+	NeedChangePassword bool
 }
