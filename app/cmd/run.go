@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/atom-eight/tmt-backend/core"
-	"github.com/atom-eight/tmt-backend/folder"
 	"github.com/latifrons/commongo/mylog"
+	"github.com/latifrons/lbserver/core"
+	"github.com/latifrons/lbserver/folder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

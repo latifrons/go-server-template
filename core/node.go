@@ -1,13 +1,9 @@
 package core
 
 import (
-	"github.com/atom-eight/tmt-backend/dbgorm"
-	"github.com/atom-eight/tmt-backend/folder"
-	"github.com/atom-eight/tmt-backend/oss"
-	"github.com/atom-eight/tmt-backend/rpc"
-	"github.com/atom-eight/tmt-backend/rpc/controllers"
-	"github.com/atom-eight/tmt-backend/two_factor"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/latifrons/lbserver/folder"
+	"github.com/latifrons/lbserver/rpc"
+	"github.com/latifrons/lbserver/rpc/controllers"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -18,35 +14,11 @@ type Node struct {
 }
 
 func (n *Node) Setup() {
-	dbOperator := &dbgorm.DbOperator{
-		//Source: fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
-		//	viper.GetString("mysql.username"), viper.GetString("mysql.password"),
-		//	viper.GetString("mysql.url"), viper.GetString("mysql.schema")),
-		Source: viper.GetString("sqlite.path"),
-	}
-	dbOperator.InitDefault()
-
-	twoFactorValidator := &two_factor.TwoFactorValidator{
-		Address:               viper.GetString("redis.address"),
-		Password:              viper.GetString("redis.password"),
-		DBId:                  viper.GetInt("redis.db_id"),
-		CodeExpirationSeconds: viper.GetInt("redis.code_expiration_seconds"),
-	}
-	twoFactorValidator.InitDefault()
-
-	fileUploader := &oss.FileUploader{
-		Endpoint: endpoints.UsEast2RegionID,
-	}
-	fileUploader.InitDefault()
 
 	rpcServer := &rpc.RpcServer{
 		C: &controllers.RpcController{
 			FolderConfig:               n.FolderConfig,
 			ReturnDetailedErrorMessage: viper.GetBool("debug.return_detailed_error"),
-			DbOperator:                 dbOperator,
-			FileUploader:               fileUploader,
-			S3Bucket:                   "file.894569.site",
-			MaxUploadFileSize:          100 * 1024,
 		},
 		Port: viper.GetString("rpc.port"),
 	}

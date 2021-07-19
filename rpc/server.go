@@ -3,8 +3,8 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"github.com/atom-eight/tmt-backend/rpc/controllers"
 	"github.com/gin-gonic/gin"
+	"github.com/latifrons/lbserver/rpc/controllers"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/atom-eight/tmt-backend/app/cmd"
+	"github.com/latifrons/lbserver/app/cmd"
 	"math/rand"
 	"time"
 )

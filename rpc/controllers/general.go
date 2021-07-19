@@ -12,14 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/afex/hystrix-go/hystrix"
-	"github.com/atom-eight/tmt-backend/dbgorm"
-	"github.com/atom-eight/tmt-backend/folder"
-	"github.com/atom-eight/tmt-backend/oss"
 	"github.com/gin-gonic/gin"
+	"github.com/latifrons/lbserver/folder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -37,10 +34,6 @@ const DefaultCacheControl = "public; max-age=86400"
 type RpcController struct {
 	FolderConfig               folder.FolderConfig
 	ReturnDetailedErrorMessage bool
-	DbOperator                 *dbgorm.DbOperator
-	FileUploader               *oss.FileUploader
-	S3Bucket                   string
-	MaxUploadFileSize          int64
 }
 
 func (rpc *RpcController) NewRouter() *gin.Engine {
@@ -142,18 +135,9 @@ var ginLogFormatter = func(param gin.LogFormatterParams) string {
 
 func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.GET("/api/health", rpc.Health)
+	router.GET("/health", rpc.Health)
+	router.GET("/debug/:key", rpc.DebugIP)
 
-	vDebug := router.Group("/api/debug")
-	{
-		vDebug.GET("ua", rpc.DebugUA)
-		vDebug.GET("panic", rpc.Panic)
-	}
-	v1 := router.Group("/api/v1")
-	{
-		v1.POST("file", rpc.UploadFile)
-		v1.DELETE("file/:key", rpc.DeleteFile)
-	}
 	return router
 }
 
@@ -166,17 +150,6 @@ func Response(c *gin.Context, status int, code int, msg string, data interface{}
 		Code: code,
 		Msg:  msg,
 		Data: data,
-	})
-}
-
-func ResponsePaging(c *gin.Context, status int, code int, msg string, pagingResult dbgorm.PagingResult, data interface{}) {
-	c.JSON(status, PagingResponse{
-		Code:   code,
-		Msg:    msg,
-		Limit:  pagingResult.Limit,
-		Total:  pagingResult.Total,
-		Offset: pagingResult.Offset,
-		Data:   data,
 	})
 }
 
@@ -197,14 +170,6 @@ func (rpc *RpcController) ResponseError(c *gin.Context, err error) bool {
 	return true
 }
 
-func (rpc *RpcController) extractPagingQuery(c *gin.Context) dbgorm.PagingParams {
-	return dbgorm.PagingParams{
-		Offset:    tryParseIntDefault(c.DefaultQuery("offset", "0"), 0),
-		Limit:     tryParseIntDefault(c.DefaultQuery("limit", "10"), 10),
-		NeedTotal: true,
-	}
-}
-
 func (rpc *RpcController) ResponseEmptyQuery(c *gin.Context, value string) bool {
 	if value == "" {
 		Response(c, http.StatusBadRequest, 1, "param missing", nil)
@@ -217,50 +182,10 @@ func (rpc *RpcController) ToStringArray(query string) (arr []string, err error) 
 	return strings.Split(query, "$"), nil
 }
 
-func (rpc *RpcController) UploadFile(c *gin.Context) {
-	fileHeader, err := c.FormFile("file")
-	if rpc.ResponseError(c, err) {
-		return
+func (rpc *RpcController) DebugIP(context *gin.Context) {
+	resp := DebugResponse{
+		Ip:    context.Request.RemoteAddr,
+		Value: context.Param("key"),
 	}
-
-	size := fileHeader.Size
-	if size > rpc.MaxUploadFileSize {
-		Response(c, http.StatusNotAcceptable, 1, "Exceed max file size", nil)
-		return
-	}
-
-	fileName := fileHeader.Filename
-	f, err := fileHeader.Open()
-	if rpc.ResponseError(c, err) {
-		return
-	}
-
-	result, err := rpc.FileUploader.Upload(f, rpc.S3Bucket, fileName, DefaultCacheControl)
-	if rpc.ResponseError(c, err) {
-		return
-	}
-	logrus.WithField("path", result.Location).Info("file uploaded")
-	Response(c, http.StatusOK, 1, "", result.Location)
-}
-
-func (rpc *RpcController) DeleteFile(c *gin.Context) {
-	key := c.Param("key")
-	if key == "" {
-		return
-	}
-
-	result, err := rpc.FileUploader.Remove(rpc.S3Bucket, key)
-	if rpc.ResponseError(c, err) {
-		return
-	}
-	logrus.Info("file deleted")
-	Response(c, http.StatusOK, 1, "", result.VersionId)
-}
-
-func tryParseIntDefault(v string, d int) int {
-	c, err := strconv.Atoi(v)
-	if err != nil {
-		return d
-	}
-	return c
+	Response(context, http.StatusOK, 0, "", resp)
 }

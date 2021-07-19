@@ -22,3 +22,8 @@ type DebugUAResponse struct {
 	OsPlatform  string `json:"os_platform"`
 	DbPlatform  string `json:"db_platform"`
 }
+
+type DebugResponse struct {
+	Ip    string `json:"ip"`
+	Value string `json:"value"`
+}
