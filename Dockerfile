@@ -13,7 +13,9 @@ RUN go build ./app/main.go
 # Copy OG into basic alpine image
 FROM alpine:latest
 
-RUN apk add --no-cache curl iotop busybox-extras
+RUN set -eux && sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+RUN cat /etc/apk/repositories
+RUN apk add --no-cache curl iotop
 
 COPY --from=builder src/nodedata/config ./nodedata
 COPY --from=builder src/build/main .
