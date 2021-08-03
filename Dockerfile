@@ -1,6 +1,10 @@
 # Build OG from alpine based golang environment
 FROM golang:1.16-alpine as builder
 
+RUN set -eux && sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+RUN cat /etc/apk/repositories
+RUN apk add --no-cache curl iotop
+
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 
 ENV GOPROXY https://goproxy.cn
