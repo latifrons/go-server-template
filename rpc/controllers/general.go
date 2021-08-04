@@ -16,7 +16,9 @@ import (
 	"github.com/latifrons/lbserver/folder"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -137,6 +139,7 @@ func (rpc *RpcController) addRouter(router *gin.Engine) *gin.Engine {
 	//router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/health", rpc.Health)
 	router.GET("/debug/:key", rpc.DebugIP)
+	router.GET("/showfile", rpc.ShowFile)
 
 	return router
 }
@@ -183,9 +186,37 @@ func (rpc *RpcController) ToStringArray(query string) (arr []string, err error) 
 }
 
 func (rpc *RpcController) DebugIP(context *gin.Context) {
+
+	f, err := os.OpenFile("nodedata/data/access.log", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logrus.WithError(err).Error("open file")
+		rpc.ResponseError(context, err)
+		return
+	}
+	_, err = f.WriteString(fmt.Sprintf("%s %s", time.Now().String(), context.Param("key")))
+	if err != nil {
+		logrus.WithError(err).Error("write file")
+		rpc.ResponseError(context, err)
+		return
+	}
+
 	resp := DebugResponse{
 		Ip:    context.Request.RemoteAddr,
 		Value: context.Param("key"),
+	}
+	Response(context, http.StatusOK, 0, "", resp)
+}
+
+func (rpc *RpcController) ShowFile(context *gin.Context) {
+	file, err := ioutil.ReadFile("nodedata/data/access.log")
+	if err != nil {
+		logrus.WithError(err).Error("open file")
+		rpc.ResponseError(context, err)
+		return
+	}
+	resp := DebugResponse{
+		Ip:    context.Request.RemoteAddr,
+		Value: "Content:" + string(file),
 	}
 	Response(context, http.StatusOK, 0, "", resp)
 }
