@@ -16,9 +16,9 @@ func Execute() {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "Atom8Server",
-	Short: "Atom8Server",
-	Long:  `Atom8Server to da moon`,
+	Use:   "LbServer",
+	Short: "LbServer",
+	Long:  `LbServer to da moon`,
 }
 
 func init() {

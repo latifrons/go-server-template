@@ -14,10 +14,10 @@ import (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Start a Atom8Server instance",
-	Long:  `Start a Atom8Server instance`,
+	Short: "Start a LbServer instance",
+	Long:  `Start a LbServer instance`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Info("Atom8Server Starting")
+		logrus.Info("LbServer Starting")
 		folderConfigs := tools.EnsureFolders()
 		readConfig(folderConfigs.Config)
 		readPrivate(folderConfigs.Private)
