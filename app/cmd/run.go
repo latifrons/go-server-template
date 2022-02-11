@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"github.com/latifrons/commongo/mylog"
 	"github.com/latifrons/lbserver/core"
-	"github.com/latifrons/lbserver/folder"
+	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,20 +18,17 @@ var runCmd = &cobra.Command{
 	Long:  `Start a Atom8Server instance`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.Info("Atom8Server Starting")
-		folderConfigs := folder.EnsureFolders()
+		folderConfigs := tools.EnsureFolders()
 		readConfig(folderConfigs.Config)
 		readPrivate(folderConfigs.Private)
 
-		mylog.LogInit(mylog.LogLevel(viper.GetString("log.level")))
+		formatter := new(logrus.TextFormatter)
+		formatter.TimestampFormat = "01-02 15:04:05.000000"
+		formatter.FullTimestamp = true
+		formatter.ForceColors = true
 
-		mylog.InitLogger(logrus.StandardLogger(), mylog.LogConfig{
-			MaxSize:    10,
-			MaxBackups: 100,
-			MaxAgeDays: 90,
-			Compress:   true,
-			LogDir:     folderConfigs.Log,
-			OutputFile: "atom8",
-		})
+		logrus.SetFormatter(formatter)
+		logrus.StandardLogger().SetOutput(os.Stdout)
 
 		// init logs and other facilities before the core starts
 

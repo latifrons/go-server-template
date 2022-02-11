@@ -1,24 +1,29 @@
 package core
 
 import (
-	"github.com/latifrons/lbserver/folder"
 	"github.com/latifrons/lbserver/rpc"
-	"github.com/latifrons/lbserver/rpc/controllers"
+	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 type Node struct {
-	FolderConfig folder.FolderConfig
+	FolderConfig tools.FolderConfig
 	components   []Component
 }
 
 func (n *Node) Setup() {
+	allowOrigins, err := tools.ReadStringArrayFromFile(viper.GetString("rpc.allow_origins"))
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to read cors file")
+	}
 
 	rpcServer := &rpc.RpcServer{
-		C: &controllers.RpcController{
+		C: &rpc.RpcController{
 			FolderConfig:               n.FolderConfig,
 			ReturnDetailedErrorMessage: viper.GetBool("debug.return_detailed_error"),
+			Mode:                       viper.GetString("common.mode"),
+			AllowOrigins:               allowOrigins,
 		},
 		Port: viper.GetString("rpc.port"),
 	}
