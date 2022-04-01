@@ -17,6 +17,7 @@ require (
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
 	github.com/swaggo/gin-swagger v1.4.1
 	github.com/swaggo/swag v1.7.9
+	github.com/yitter/idgenerator-go v1.2.1
 	gorm.io/driver/mysql v1.2.3
 	gorm.io/gorm v1.22.4
 )

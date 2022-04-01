@@ -32,7 +32,7 @@ func (rpc *RpcController) NewRouter() *gin.Engine {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     rpc.AllowOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"},
+		AllowHeaders:     []string{"Accept", "User-Agent", "Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))

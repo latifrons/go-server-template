@@ -1,4 +1,4 @@
-package tools
+package folder
 
 import (
 	"github.com/latifrons/commongo/files"

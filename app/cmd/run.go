@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"github.com/latifrons/commongo/utilfuncs"
 	"github.com/latifrons/lbserver/core"
-	"github.com/latifrons/lbserver/tools"
+	"github.com/latifrons/lbserver/folder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -18,15 +19,19 @@ var runCmd = &cobra.Command{
 	Long:  `Start a LbServer instance`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.Info("LbServer Starting")
-		folderConfigs := tools.EnsureFolders()
+		folderConfigs := folder.EnsureFolders()
 		readConfig(folderConfigs.Config)
 		readPrivate(folderConfigs.Private)
+		dumpConfig()
 
 		formatter := new(logrus.TextFormatter)
 		formatter.TimestampFormat = "01-02 15:04:05.000000"
 		formatter.FullTimestamp = true
 		formatter.ForceColors = true
 
+		lvl, err := logrus.ParseLevel(viper.GetString("log.level"))
+		utilfuncs.PanicIfError(err, "log level")
+		logrus.SetLevel(lvl)
 		logrus.SetFormatter(formatter)
 		logrus.StandardLogger().SetOutput(os.Stdout)
 
@@ -52,7 +57,6 @@ var runCmd = &cobra.Command{
 			core.Stop()
 			os.Exit(0)
 		}()
-
 	},
 }
 

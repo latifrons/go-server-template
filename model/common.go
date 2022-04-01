@@ -15,6 +15,12 @@ type PagingParams struct {
 	NeedTotal bool
 }
 
+func (p PagingParams) ToPageNumSize() (pageNum int, pageSize int) {
+	pageNum = int(p.Offset/p.Limit) + 1
+	pageSize = p.Limit
+	return
+}
+
 type PagingResult struct {
 	Offset int
 	Limit  int

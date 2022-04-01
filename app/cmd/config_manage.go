@@ -35,10 +35,6 @@ func readConfig(configFolder string) {
 	}
 
 	mergeEnvConfig()
-	// print running config in console.
-	b, err := format.PrettyJson(viper.AllSettings())
-	utilfuncs.PanicIfError(err, "dump json")
-	fmt.Println(b)
 }
 
 func mergeEnvConfig() {
@@ -72,4 +68,11 @@ func mergeLocalConfig(configPath string) {
 	err = viper.MergeConfig(file)
 	utilfuncs.PanicIfError(err, fmt.Sprintf("Error on reading config file: %s", absPath))
 	return
+}
+
+func dumpConfig() {
+	// print running config in console.
+	b, err := format.PrettyJson(viper.AllSettings())
+	utilfuncs.PanicIfError(err, "dump json")
+	fmt.Println(b)
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/latifrons/lbserver/folder"
 	"github.com/latifrons/lbserver/rpc"
 	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
@@ -8,7 +9,7 @@ import (
 )
 
 type Node struct {
-	FolderConfig tools.FolderConfig
+	FolderConfig folder.FolderConfig
 	components   []Component
 }
 

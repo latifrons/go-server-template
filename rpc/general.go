@@ -15,15 +15,15 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/latifrons/lbserver/berror"
+	"github.com/latifrons/lbserver/folder"
 	"github.com/latifrons/lbserver/model"
-	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
 
 type RpcController struct {
-	FolderConfig               tools.FolderConfig
+	FolderConfig               folder.FolderConfig
 	ReturnDetailedErrorMessage bool
 	Mode                       string
 	AllowOrigins               []string
