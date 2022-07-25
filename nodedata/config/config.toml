@@ -3,11 +3,20 @@ port = 8083
 allow_origins="nodedata/config/allow_origins.txt"
 
 [debug]
-return_detailed_error = true
-listing_folder = true
+return_detail_error = false
+db_log = false
+request_log = false
+response_log = false
+rpc_log = false
+gin_debug = false
+skip_verify_admin = false
+skip_email = false
+swagger = false
+log_level = "info"
+
 
 [common]
-mode="debug"
+id_gen = "local"
+system_id = 100
 
-[log]
-level = "debug"
+[service]

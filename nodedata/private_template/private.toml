@@ -1,0 +1,16 @@
+[mysql]
+url = "127.0.0.1:3306"
+username = ""
+password = ""
+schema = ""
+
+[tx_mysql]
+host = "127.0.0.1"
+port = 3306
+user = ""
+password = ""
+
+[redis]
+address = "localhost:6379"
+password = ""
+db = 0

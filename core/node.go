@@ -1,11 +1,13 @@
 package core
 
 import (
+	"github.com/latifrons/lbserver/cache"
 	"github.com/latifrons/lbserver/folder"
 	"github.com/latifrons/lbserver/rpc"
 	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/yitter/idgenerator-go/idgen"
 )
 
 type Node struct {
@@ -14,6 +16,20 @@ type Node struct {
 }
 
 func (n *Node) Setup() {
+	err := buildDependencies()
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to inject")
+	}
+
+	var redisCache *cache.RedisCache
+	if tools.ViperMustGetString("common.id_gen") != "local" {
+		intCmd := redisCache.Rdb.Incr(tools.GetContext(10), "snowflake_worker")
+		if intCmd.Err() != nil {
+			logrus.WithError(intCmd.Err()).Fatal("failed to incr snowflake worker")
+		}
+		idgen.SetIdGenerator(idgen.NewIdGeneratorOptions(uint16(intCmd.Val())))
+	}
+
 	allowOrigins, err := tools.ReadStringArrayFromFile(viper.GetString("rpc.allow_origins"))
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to read cors file")
@@ -21,10 +37,7 @@ func (n *Node) Setup() {
 
 	rpcServer := &rpc.RpcServer{
 		C: &rpc.RpcController{
-			FolderConfig:               n.FolderConfig,
-			ReturnDetailedErrorMessage: viper.GetBool("debug.return_detailed_error"),
-			Mode:                       viper.GetString("common.mode"),
-			AllowOrigins:               allowOrigins,
+			AllowOrigins: allowOrigins,
 		},
 		Port: viper.GetString("rpc.port"),
 	}

@@ -1,12 +1,15 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/afex/hystrix-go/hystrix"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -81,9 +84,9 @@ var ginLogFormatter = func(param gin.LogFormatterParams) string {
 		param.Path,
 		param.ErrorMessage,
 	)
-	logrus.Tracef("gin log %v ", logEntry)
-	//return  logEntry
-	return ""
+	//logrus.Tracef("gin log %v ", logEntry)
+	return logEntry
+	//return ""
 }
 
 var FullDateFormatPattern = "2 Jan 2006 15:04:05"
@@ -111,10 +114,42 @@ func BreakerWrapper(c *gin.Context) {
 	})
 }
 
+func RequestLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var buf bytes.Buffer
+		tee := io.TeeReader(c.Request.Body, &buf)
+		body, _ := ioutil.ReadAll(tee)
+		c.Request.Body = ioutil.NopCloser(&buf)
+		logrus.WithField("uri", c.Request.RequestURI).Trace("Received request")
+		logrus.Trace(c.Request.Header)
+		logrus.Trace(string(body))
+		c.Next()
+	}
+}
+
 func tryParseIntDefault(v string, d int) int {
 	c, err := strconv.Atoi(v)
 	if err != nil {
 		return d
 	}
 	return c
+}
+
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func ResponseLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+		c.Writer = blw
+		c.Next()
+		fmt.Println("Response body: " + blw.body.String())
+	}
 }

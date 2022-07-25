@@ -4,6 +4,7 @@ import (
 	"github.com/latifrons/commongo/utilfuncs"
 	"github.com/latifrons/lbserver/core"
 	"github.com/latifrons/lbserver/folder"
+	"github.com/latifrons/lbserver/tools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,10 +16,10 @@ import (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Start a LbServer instance",
-	Long:  `Start a LbServer instance`,
+	Short: "Start a Atom8Server instance",
+	Long:  `Start a Atom8Server instance`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Info("LbServer Starting")
+		logrus.Info("Atom8Server Starting")
 		folderConfigs := folder.EnsureFolders()
 		readConfig(folderConfigs.Config)
 		readPrivate(folderConfigs.Private)
@@ -29,7 +30,7 @@ var runCmd = &cobra.Command{
 		formatter.FullTimestamp = true
 		formatter.ForceColors = true
 
-		lvl, err := logrus.ParseLevel(viper.GetString("log.level"))
+		lvl, err := logrus.ParseLevel(tools.ViperMustGetString("debug.log_level"))
 		utilfuncs.PanicIfError(err, "log level")
 		logrus.SetLevel(lvl)
 		logrus.SetFormatter(formatter)
@@ -57,6 +58,7 @@ var runCmd = &cobra.Command{
 			core.Stop()
 			os.Exit(0)
 		}()
+
 	},
 }
 

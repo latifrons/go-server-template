@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/latifrons/lbserver/berror"
-	"github.com/latifrons/lbserver/folder"
+	"github.com/latifrons/lbserver/debug"
 	"github.com/latifrons/lbserver/model"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -23,14 +23,12 @@ import (
 )
 
 type RpcController struct {
-	FolderConfig               folder.FolderConfig
-	ReturnDetailedErrorMessage bool
-	Mode                       string
-	AllowOrigins               []string
+	Flags        *debug.Flags `container:"type"`
+	AllowOrigins []string
 }
 
 func (rpc *RpcController) Response(c *gin.Context, status int, code int, msg string, data interface{}) {
-	if rpc.Mode == "debug" {
+	if rpc.Flags.ResponseLog {
 		logrus.WithField("data", data).WithField("msg", msg).WithField("code", code).WithField("status", status).Info("resp")
 	}
 	c.JSON(status, GeneralResponse{
@@ -40,7 +38,7 @@ func (rpc *RpcController) Response(c *gin.Context, status int, code int, msg str
 	})
 }
 func (rpc *RpcController) ResponseOK(c *gin.Context, data interface{}) {
-	if rpc.Mode == "debug" {
+	if rpc.Flags.ResponseLog {
 		logrus.WithField("data", data).Info("resp ok")
 	}
 	c.JSON(http.StatusOK, GeneralResponse{
@@ -51,17 +49,32 @@ func (rpc *RpcController) ResponseOK(c *gin.Context, data interface{}) {
 }
 
 func (rpc *RpcController) ResponsePaging(c *gin.Context, pagingResult model.PagingResult, data interface{}, list interface{}) {
-	c.JSON(http.StatusOK, PagingResponse{
-		GeneralResponse: GeneralResponse{
-			Code: 0,
-			Msg:  "",
-			Data: data,
-		},
-		List:  list,
-		Size:  pagingResult.Limit,
-		Total: pagingResult.Total,
-		Page:  pagingResult.Offset/pagingResult.Limit + 1,
-	})
+	if pagingResult.Limit != 0 {
+		c.JSON(http.StatusOK, PagingResponse{
+			GeneralResponse: GeneralResponse{
+				Code: 0,
+				Msg:  "",
+				Data: data,
+			},
+			List:  list,
+			Size:  pagingResult.Limit,
+			Total: pagingResult.Total,
+			Page:  pagingResult.Offset/pagingResult.Limit + 1,
+		})
+	} else {
+		c.JSON(http.StatusOK, PagingResponse{
+			GeneralResponse: GeneralResponse{
+				Code: 0,
+				Msg:  "",
+				Data: data,
+			},
+			List:  list,
+			Size:  pagingResult.Limit,
+			Total: pagingResult.Total,
+			Page:  1,
+		})
+	}
+
 }
 
 func (rpc *RpcController) ResponseBadRequest(c *gin.Context, err error) bool {
@@ -69,7 +82,7 @@ func (rpc *RpcController) ResponseBadRequest(c *gin.Context, err error) bool {
 		return false
 	}
 	logrus.WithError(err).Debug("bad request")
-	if rpc.ReturnDetailedErrorMessage {
+	if rpc.Flags.ReturnDetailError {
 		rpc.Response(c, http.StatusBadRequest, berror.ErrBadRequest, err.Error(), nil)
 	} else {
 		rpc.Response(c, http.StatusBadRequest, berror.ErrBadRequest, "Bad Request. Check your input", nil)
@@ -82,7 +95,7 @@ func (rpc *RpcController) ResponseInternalServerError(c *gin.Context, err error)
 		return false
 	}
 	logrus.WithError(err).Error("internal error")
-	if rpc.ReturnDetailedErrorMessage {
+	if rpc.Flags.ReturnDetailError {
 		rpc.Response(c, http.StatusInternalServerError, berror.ErrInternal, err.Error(), nil)
 	} else {
 		rpc.Response(c, http.StatusInternalServerError, berror.ErrInternal, "Internal server error", nil)
@@ -99,7 +112,7 @@ func (rpc *RpcController) ResponseError(c *gin.Context, err error) bool {
 		berr := err.(*berror.BError)
 
 		var msg = "fail"
-		if rpc.ReturnDetailedErrorMessage {
+		if rpc.Flags.ReturnDetailError {
 			msg = berr.Msg
 		}
 
@@ -134,26 +147,21 @@ func (rpc *RpcController) ResponseEmptyQuery(c *gin.Context, value string) bool 
 	return false
 }
 
-func (rpc *RpcController) extractPagingQuery(c *gin.Context) model.PagingParams {
-	page := tryParseIntDefault(c.DefaultQuery("page", "1"), 1)
-	size := tryParseIntDefault(c.DefaultQuery("size", "10"), 10)
-
-	return model.PagingParams{
-		Offset:    (page - 1) * size,
-		Limit:     size,
-		NeedTotal: true,
-	}
-}
-
 func (rpc *RpcController) ToStringArray(query string) (arr []string, err error) {
 	return strings.Split(query, "$"), nil
 }
 
-func (rpc *RpcController) extractOrderQuery(c *gin.Context) model.OrderParams {
-	return model.OrderParams{
-		OrderBy:        c.DefaultQuery("order_by", ""),
-		OrderDirection: c.DefaultQuery("order_direction", ""),
+func (rpc *RpcController) extractOrderQuery(c *gin.Context) (p model.OrderParams, err error) {
+	dir := strings.ToUpper(c.DefaultQuery("order_direction", ""))
+	if dir != model.OrderDirectionASC && dir != model.OrderDirectionDESC && dir != "" {
+		err = berror.NewFail(berror.ErrBadRequest, "bad order direction: "+dir)
+		return
 	}
+	p = model.OrderParams{
+		OrderBy:        c.DefaultQuery("order_by", ""),
+		OrderDirection: dir,
+	}
+	return
 }
 
 func (rpc *RpcController) mustNotDuplicate(c *gin.Context, key string, nonce uint) bool {
@@ -163,4 +171,22 @@ func (rpc *RpcController) mustNotDuplicate(c *gin.Context, key string, nonce uin
 		return true
 	}
 	return false
+}
+
+func (rpc *RpcController) parseBoolValue(v string) (vout bool, err error) {
+	v = strings.ToLower(v)
+	v = strings.TrimSpace(v)
+	switch v {
+	case "0":
+		vout = false
+	case "false":
+		vout = false
+	case "1":
+		vout = true
+	case "true":
+		vout = true
+	default:
+		err = errors.New("bad bool value")
+	}
+	return
 }

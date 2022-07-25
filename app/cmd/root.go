@@ -16,9 +16,9 @@ func Execute() {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "LbServer",
-	Short: "LbServer",
-	Long:  `LbServer to da moon`,
+	Use:   "Atom8Server",
+	Short: "Atom8Server",
+	Long:  `Atom8Server to da moon`,
 }
 
 func init() {
@@ -28,15 +28,15 @@ func init() {
 	rootCmd.PersistentFlags().String("dir-config", "", "Config folder. Default to {dir.root}/config")
 	rootCmd.PersistentFlags().String("dir-private", "", "Private folder. Default to {dir.root}/private")
 
-	rootCmd.PersistentFlags().String("log-level", "info", "Logging verbosity, possible values:[panic, fatal, error, warn, info, debug]")
-	rootCmd.PersistentFlags().Bool("debug-return_detailed_error", false, "In Rpc response, return detailed error message for debugging.")
+	rootCmd.PersistentFlags().String("log-level", "info", "Logging verbosity, possible values:[panic, fatal, berror, warn, info, debug]")
+	rootCmd.PersistentFlags().Bool("debug-return_detailed_error", false, "In Rpc response, return detailed berror message for debugging.")
 
 	_ = viper.BindPFlag("dir.root", rootCmd.PersistentFlags().Lookup("dir-root"))
 	_ = viper.BindPFlag("dir.log", rootCmd.PersistentFlags().Lookup("dir-log"))
 	_ = viper.BindPFlag("dir.data", rootCmd.PersistentFlags().Lookup("dir-data"))
 	_ = viper.BindPFlag("dir.config", rootCmd.PersistentFlags().Lookup("dir-config"))
 	_ = viper.BindPFlag("dir.private", rootCmd.PersistentFlags().Lookup("dir-private"))
-	_ = viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+	_ = viper.BindPFlag("debug.log_level", rootCmd.PersistentFlags().Lookup("log-level"))
 
 	_ = viper.BindPFlag("debug.return_detailed_error", rootCmd.PersistentFlags().Lookup("debug-return_detailed_error"))
 

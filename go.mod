@@ -9,6 +9,7 @@ require (
 	github.com/go-co-op/gocron v1.12.0
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/golobby/container/v3 v3.2.1
 	github.com/latifrons/commongo v0.0.11
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.8.0

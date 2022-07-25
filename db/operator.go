@@ -11,15 +11,21 @@ import (
 
 type DbOperator struct {
 	Source string
+	DbLog  bool
 	Db     *gorm.DB
 }
 
 func (d *DbOperator) InitDefault() {
+	level := logger.Warn
+	if d.DbLog {
+		level = logger.Info
+	}
+
 	newLogger := logger.New(
 		logrus.StandardLogger(),
 		logger.Config{
 			SlowThreshold:             time.Second, // Slow SQL threshold
-			LogLevel:                  logger.Info, // Log level
+			LogLevel:                  level,       // Log level
 			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound berror for logger
 			Colorful:                  true,        // Disable color
 		},

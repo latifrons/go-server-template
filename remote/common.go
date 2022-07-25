@@ -3,12 +3,11 @@ package remote
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-func GetRestyClient() *resty.Client {
+func GetRestyClient(rpcLog bool) *resty.Client {
 	c := resty.New()
-	c.Debug = viper.GetString("common.mode") == "debug"
+	c.Debug = rpcLog
 	c.SetLogger(logrus.StandardLogger())
 	return c
 }
